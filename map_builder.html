@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Tool Tạo Map & Xuất Tọa Độ Node</title>
+    <style>
+        body { font-family: sans-serif; display: flex; gap: 20px; background: #222; color: #fff; margin: 20px; }
+        #canvas-container { position: relative; border: 2px solid #555; }
+        canvas { background: #e0f2fe; cursor: crosshair; }
+        #sidebar { width: 350px; display: flex; flex-direction: column; gap: 10px; }
+        textarea { width: 100%; height: 300px; background: #111; color: #00ff00; font-family: monospace; }
+        button { padding: 10px; cursor: pointer; background: #0284c7; color: white; border: none; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div id="canvas-container">
+        <!-- Canvas vẽ Map rộng 1920x1080 (Chuẩn Pummel Party) -->
+        <canvas id="mapCanvas" width="1280" height="720"></canvas>
+    </div>
+
+    <div id="sidebar">
+        <h2>Công Cụ Tạo Node Map</h2>
+        <p>1. Click chuột lên hình để tạo Nút (Node).</p>
+        <p>2. Giữ phím <b>Shift</b> + Click vào Node cũ để đánh dấu Ngã Rẽ/Vật Cản.</p>
+        <button onclick="exportData()">Xuất File Tọa Độ (JSON)</button>
+        <textarea id="outputJson" readonly placeholder="Dữ liệu Tọa độ Node sẽ xuất ra ở đây..."></textarea>
+    </div>
+
+<script>
+const canvas = document.getElementById('mapCanvas');
+const ctx = canvas.getContext('2d');
+let nodes = [];
+let nodeIdCount = 1;
+
+// Vẽ phông nền đại diện cho Tuyết / Đất
+function drawBackground() {
+    ctx.fillStyle = "#e0f2fe"; // Màu tuyết trắng xanh
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Vẽ phác thảo 1 vài vật cản mẫu (Cây thông, Tảng băng)
+    ctx.fillStyle = "#15803d"; // Cây thông
+    ctx.beginPath(); ctx.arc(300, 200, 40, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = "#0284c7"; // Tảng băng
+    ctx.fillRect(600, 300, 100, 80);
+
+    ctx.fillStyle = "#000";
+    ctx.font = "14px sans-serif";
+    ctx.fillText("Cây thông (Vật cản)", 250, 260);
+    ctx.fillText("Tảng băng (Vật cản)", 600, 400);
+}
+
+// Bắt sự kiện Click chuột để tạo Nút (Node)
+canvas.addEventListener('click', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const x = Math.round(e.clientX - rect.left);
+    const y = Math.round(e.clientY - rect.top);
+
+    // Kiểm tra loại ô
+    let isObstacle = e.shiftKey; // Nếu giữ Shift khi click -> Đánh dấu là Vật cản (Không đi được)
+    
+    const newNode = {
+        id: nodeIdCount++,
+        x: x,
+        y: y,
+        walkable: !isObstacle, // true: Đi được, false: Vật cản
+        type: isObstacle ? "OBSTACLE" : "NORMAL",
+        next: [] // Lưu ID của các nút tiếp theo
+    };
+
+    // Tự động nối nút mới với nút liền trước (nếu đi được)
+    if (nodes.length > 0 && !isObstacle && nodes[nodes.length-1].walkable) {
+        nodes[nodes.length-1].next.push(newNode.id);
+    }
+
+    nodes.push(newNode);
+    render();
+});
+
+// Vẽ lại toàn bộ Nút và Đường nối
+function render() {
+    drawBackground();
+
+    // Vẽ đường nối giữa các nút
+    ctx.strokeStyle = "#94a3b8";
+    ctx.lineWidth = 4;
+    nodes.forEach(node => {
+        node.next.forEach(nextId => {
+            const target = nodes.find(n => n.id === nextId);
+            if (target) {
+                ctx.beginPath();
+                ctx.moveTo(node.x, node.y);
+                ctx.lineTo(target.x, target.y);
+                ctx.stroke();
+            }
+        });
+    });
+
+    // Vẽ các nút tròn (Nhìn giống Pummel Party)
+    nodes.forEach(node => {
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, 16, 0, Math.PI * 2);
+        
+        if (!node.walkable) {
+            ctx.fillStyle = "#ef4444"; // Màu đỏ: Vật cản (Không đi được)
+        } else if (node.next.length > 1) {
+            ctx.fillStyle = "#a855f7"; // Màu tím: Ô Ngã rẽ
+        } else {
+            ctx.fillStyle = "#3b82f6"; // Màu xanh: Ô đi được
+        }
+        
+        ctx.fill();
+        ctx.strokeStyle = "#fff";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Hiển thị ID nút
+        ctx.fillStyle = "#fff";
+        ctx.font = "bold 12px sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(node.id, node.x, node.y);
+    });
+}
+
+// Xuất dữ liệu JSON
+function exportData() {
+    document.getElementById('outputJson').value = JSON.stringify(nodes, null, 2);
+}
+
+drawBackground();
+</script>
+</body>
+</html>
