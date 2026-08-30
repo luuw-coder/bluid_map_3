@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Party Bàn Cờ - Menu Chính</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #0f172a;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+        h1 { color: #38bdf8; margin-bottom: 10px; }
+        p { color: #94a3b8; margin-bottom: 30px; }
+        .menu-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: 300px;
+        }
+        .btn {
+            padding: 15px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            color: white;
+            background-color: #0284c7;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+            text-decoration: none;
+            transition: background 0.2s;
+        }
+        .btn:hover { background-color: #0369a1; }
+        .btn-secondary { background-color: #334155; }
+        .btn-secondary:hover { background-color: #475569; }
+    </style>
+</head>
+<body>
+
+    <h1>GAME PARTY BÀN CỜ</h1>
+    <p>Hệ thống thử nghiệm & Tạo Map</p>
+
+    <div class="menu-container">
+        <!-- Nút bấm chuyển hướng trực tiếp sang Tool vẽ Map -->
+        <a href="map_builder.html" class="btn">Mở Tool Vẽ Map & Lấy Tọa Độ</a>
+        <button class="btn btn-secondary" onclick="alert('Game chính đang được phát triển!')">Vào Game (Sắp có)</button>
+    </div>
+
+</body>
+</html>
