@@ -6,17 +6,11 @@
 <title>Bản Đồ Băng Giá — Board Game 4-6 Người</title>
 <style>
   :root {
-    --sky-top: #0d2b45;
-    --sky-bot: #1c4966;
-    --snow-1: #eaf4fb;
-    --snow-2: #d3e8f5;
-    --snow-shadow: #b8d4e8;
-    --ice-blue: #7fc8e8;
-    --ice-deep: #3f9bc9;
-    --path-fill: #fffaf0;
-    --path-edge: #cbb896;
+    --sky-top: #dff2ff;
+    --sky-bot: #bfe3f7;
     --accent-gold: #f2c14e;
     --panel-bg: rgba(13, 43, 69, 0.92);
+    --text-dark: #1c3a4a;
     --text-light: #f4f9fd;
     --text-dim: #a9c4d8;
   }
@@ -24,238 +18,108 @@
   * { box-sizing: border-box; }
 
   html, body {
-    margin: 0;
-    padding: 0;
-    height: 100%;
-    background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-bot) 55%, #2c5f7a 100%);
+    margin: 0; padding: 0; height: 100%;
+    background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-bot) 100%);
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     color: var(--text-light);
     overflow: hidden;
   }
 
-  #app {
-    position: relative;
-    width: 100vw;
-    height: 100vh;
-  }
+  #app { position: relative; width: 100vw; height: 100vh; }
 
-  /* Top bar */
   #topbar {
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    z-index: 20;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+    position: absolute; top: 0; left: 0; right: 0; z-index: 20;
+    display: flex; align-items: center; justify-content: space-between;
     padding: 14px 20px;
     background: linear-gradient(180deg, rgba(6,22,38,0.85) 0%, rgba(6,22,38,0) 100%);
     pointer-events: none;
   }
   #topbar h1 {
-    margin: 0;
-    font-size: 19px;
-    font-weight: 700;
-    letter-spacing: 0.2px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    margin: 0; font-size: 19px; font-weight: 700;
+    display: flex; align-items: center; gap: 8px;
     text-shadow: 0 2px 8px rgba(0,0,0,0.4);
   }
-  #topbar .sub {
-    font-size: 12.5px;
-    color: var(--text-dim);
-    margin-top: 2px;
-  }
-  #controls {
-    pointer-events: auto;
-    display: flex;
-    gap: 8px;
-  }
+  #topbar .sub { font-size: 12.5px; color: var(--text-dim); margin-top: 2px; }
+  #controls { pointer-events: auto; display: flex; gap: 8px; flex-wrap: wrap; }
   .ctrl-btn {
-    background: rgba(255,255,255,0.1);
-    border: 1px solid rgba(255,255,255,0.18);
-    color: var(--text-light);
-    border-radius: 10px;
-    padding: 8px 12px;
-    font-size: 13px;
-    cursor: pointer;
-    backdrop-filter: blur(6px);
-    transition: background 0.15s ease;
+    background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2);
+    color: var(--text-light); border-radius: 10px; padding: 8px 12px; font-size: 13px;
+    cursor: pointer; backdrop-filter: blur(6px); transition: background 0.15s ease;
   }
-  .ctrl-btn:hover { background: rgba(255,255,255,0.2); }
+  .ctrl-btn:hover { background: rgba(255,255,255,0.22); }
   .ctrl-btn.active { background: var(--accent-gold); color: #2a2000; border-color: var(--accent-gold); }
 
-  /* Viewport / pan-zoom canvas holder */
-  #viewport {
-    position: absolute;
-    inset: 0;
-    overflow: hidden;
-    cursor: grab;
-  }
+  #viewport { position: absolute; inset: 0; overflow: hidden; cursor: grab; }
   #viewport.dragging { cursor: grabbing; }
-
-  #world {
-    position: absolute;
-    top: 0;
-    left: 0;
-    transform-origin: 0 0;
-  }
-
-  svg#mapSvg {
-    display: block;
-    overflow: visible;
-  }
+  #world { position: absolute; top: 0; left: 0; transform-origin: 0 0; }
+  svg#mapSvg { display: block; overflow: visible; }
 
   .tile-group { cursor: pointer; }
-  .tile-bg {
-    filter: drop-shadow(0 3px 6px rgba(20, 40, 60, 0.35));
-    transition: transform 0.12s ease, filter 0.12s ease;
-  }
-  .tile-group:hover .tile-bg {
-    transform: translateY(-2px) scale(1.06);
-    filter: drop-shadow(0 6px 10px rgba(20, 40, 60, 0.5));
-  }
+  .tile-bg { filter: drop-shadow(0 3px 5px rgba(20,40,60,0.3)); transition: transform 0.12s ease; }
+  .tile-group:hover .tile-bg { transform: scale(1.08); }
   .tile-icon {
-    font-size: 26px;
-    text-anchor: middle;
-    dominant-baseline: central;
-    pointer-events: none;
-    user-select: none;
+    font-size: 22px; text-anchor: middle; dominant-baseline: central;
+    pointer-events: none; user-select: none;
   }
-  .tile-label-num {
-    font-size: 9px;
-    fill: rgba(30,50,65,0.55);
-    text-anchor: middle;
-    pointer-events: none;
-    font-weight: 600;
-    user-select: none;
+  .tile-num {
+    font-size: 9px; fill: rgba(20,40,55,0.6); text-anchor: middle;
+    pointer-events: none; font-weight: 700; user-select: none;
   }
   .deco-icon {
-    font-size: 24px;
-    text-anchor: middle;
-    dominant-baseline: central;
-    pointer-events: none;
-    user-select: none;
-    opacity: 0.92;
+    font-size: 22px; text-anchor: middle; dominant-baseline: central;
+    pointer-events: none; user-select: none; opacity: 0.9;
   }
 
-  .path-line {
-    fill: none;
-    stroke: var(--path-fill);
-    stroke-width: 34;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    opacity: 0.95;
-  }
-  .path-line-edge {
-    fill: none;
-    stroke: var(--path-edge);
-    stroke-width: 40;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    opacity: 0.55;
-  }
-  .path-branch-danger { stroke: #ffe3d6; }
-  .path-branch-safe { stroke: #e3f3ff; }
+  .path-casing-line { stroke: #b8865a; stroke-width: 34; stroke-linecap: round; opacity: 0.5; }
+  .path-fill-line { stroke: #fff6e6; stroke-width: 27; stroke-linecap: round; }
+  .path-fill-line.edge-danger { stroke: #ffd2b8; }
+  .path-fill-line.edge-safe { stroke: #cdeeff; }
+  .path-arrow { fill: rgba(70,90,60,0.55); }
 
-  .ice-lake {
-    fill: var(--ice-blue);
-    opacity: 0.55;
-    filter: drop-shadow(0 2px 4px rgba(20,60,90,0.25));
-  }
-  .ice-lake-highlight {
-    fill: #ffffff;
-    opacity: 0.35;
-  }
-
-  /* Legend panel */
   #legend {
-    position: absolute;
-    right: 16px;
-    top: 74px;
-    z-index: 20;
-    background: var(--panel-bg);
-    border: 1px solid rgba(255,255,255,0.12);
-    border-radius: 14px;
-    padding: 14px 16px;
-    width: 230px;
-    max-height: calc(100vh - 110px);
-    overflow-y: auto;
-    backdrop-filter: blur(10px);
-    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    position: absolute; right: 16px; top: 74px; z-index: 20;
+    background: var(--panel-bg); border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 14px; padding: 14px 16px; width: 230px;
+    max-height: calc(100vh - 110px); overflow-y: auto;
+    backdrop-filter: blur(10px); box-shadow: 0 8px 24px rgba(0,0,0,0.3);
   }
-  #legend h2 {
-    font-size: 13px;
-    text-transform: none;
-    margin: 0 0 10px 0;
-    color: var(--accent-gold);
-    font-weight: 700;
-  }
+  #legend h2 { font-size: 13px; margin: 0 0 10px 0; color: var(--accent-gold); font-weight: 700; }
   .legend-row {
-    display: flex;
-    align-items: flex-start;
-    gap: 9px;
-    padding: 5px 0;
-    font-size: 12.5px;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
+    display: flex; align-items: flex-start; gap: 9px; padding: 5px 0;
+    font-size: 12.5px; border-bottom: 1px solid rgba(255,255,255,0.06);
   }
   .legend-row:last-child { border-bottom: none; }
   .legend-icon { font-size: 17px; width: 22px; text-align: center; flex-shrink: 0; }
   .legend-text .label { font-weight: 600; color: var(--text-light); }
   .legend-text .desc { color: var(--text-dim); font-size: 11.5px; }
 
-  /* Tile info tooltip */
   #tileInfo {
-    position: absolute;
-    z-index: 30;
-    background: rgba(10, 30, 48, 0.96);
-    border: 1px solid rgba(255,255,255,0.2);
-    border-radius: 10px;
-    padding: 8px 12px;
-    font-size: 12.5px;
-    pointer-events: none;
-    display: none;
-    white-space: nowrap;
+    position: absolute; z-index: 30;
+    background: rgba(10, 30, 48, 0.96); border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 10px; padding: 8px 12px; font-size: 12.5px;
+    pointer-events: none; display: none; white-space: nowrap;
     box-shadow: 0 6px 16px rgba(0,0,0,0.4);
   }
   #tileInfo .t-label { font-weight: 700; color: var(--accent-gold); }
   #tileInfo .t-desc { color: var(--text-dim); }
 
-  /* Zoom controls */
   #zoomCtrls {
-    position: absolute;
-    left: 16px;
-    bottom: 16px;
-    z-index: 20;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+    position: absolute; left: 16px; bottom: 16px; z-index: 20;
+    display: flex; flex-direction: column; gap: 6px;
   }
   .zoom-btn {
-    width: 38px; height: 38px;
-    border-radius: 10px;
-    background: var(--panel-bg);
-    border: 1px solid rgba(255,255,255,0.15);
-    color: var(--text-light);
-    font-size: 18px;
-    cursor: pointer;
+    width: 38px; height: 38px; border-radius: 10px;
+    background: var(--panel-bg); border: 1px solid rgba(255,255,255,0.15);
+    color: var(--text-light); font-size: 18px; cursor: pointer;
     display: flex; align-items: center; justify-content: center;
   }
   .zoom-btn:hover { background: rgba(30,70,100,0.95); }
 
   #branchNote {
-    position: absolute;
-    left: 16px;
-    top: 74px;
-    z-index: 20;
-    background: var(--panel-bg);
-    border: 1px solid rgba(255,255,255,0.12);
-    border-radius: 14px;
-    padding: 12px 14px;
-    width: 210px;
-    font-size: 12px;
-    color: var(--text-dim);
-    backdrop-filter: blur(10px);
+    position: absolute; left: 16px; top: 74px; z-index: 20;
+    background: var(--panel-bg); border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 14px; padding: 12px 14px; width: 210px; font-size: 12px;
+    color: var(--text-dim); backdrop-filter: blur(10px);
     box-shadow: 0 8px 24px rgba(0,0,0,0.3);
   }
   #branchNote strong { color: var(--text-light); }
@@ -287,12 +151,8 @@
 
   <div id="branchNote">
     <div><strong>🔀 2 điểm rẽ nhánh</strong></div>
-    <div style="margin-top:6px">
-      <span class="b-danger">● Nhánh nguy hiểm</span>: ngắn hơn, nhiều rương & phạt
-    </div>
-    <div style="margin-top:4px">
-      <span class="b-safe">● Nhánh an toàn</span>: dài hơn, nhiều hồi máu/tiền
-    </div>
+    <div style="margin-top:6px"><span class="b-danger">● Nhánh nguy hiểm</span>: ngắn hơn, nhiều rương & phạt</div>
+    <div style="margin-top:4px"><span class="b-safe">● Nhánh an toàn</span>: dài hơn, nhiều hồi máu/tiền</div>
   </div>
 
   <div id="viewport">
@@ -314,7 +174,7 @@
   </div>
 </div>
 
-<script src="Map_data.js"></script>
-<script src="Map_render.js"></script>
+<script src="map-data.js"></script>
+<script src="map-render.js"></script>
 </body>
 </html>
