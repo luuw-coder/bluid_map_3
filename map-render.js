@@ -1,5 +1,7 @@
 // ============================================================
-// MAP RENDERER v2
+// MAP RENDERER v3 — phong cách "adventure board" kiểu Stickman
+// Party: ô tròn dạng nút bấm nổi khối, path be/kem uốn tự nhiên,
+// nền texture cỏ/tuyết loang màu, mũi tên tròn xanh dương.
 // ============================================================
 console.log('[map-render] script loaded');
 
@@ -10,8 +12,8 @@ console.log('[map-render] script loaded');
     }
 
     const SVG_NS = 'http://www.w3.org/2000/svg';
-    const CELL = 92;
-    const PAD = 90;
+    const CELL = 96;
+    const PAD = 100;
 
     const svg = document.getElementById('mapSvg');
     const world = document.getElementById('world');
@@ -26,6 +28,17 @@ console.log('[map-render] script loaded');
       for (const k in attrs) e.setAttribute(k, attrs[k]);
       return e;
     }
+
+    // seeded pseudo-random để texture ổn định giữa các lần render
+    function mulberry32(seed) {
+      return function () {
+        seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+        let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+    const rand = mulberry32(20260901);
 
     const tileIndex = {};
     TILES.forEach(t => tileIndex[t.id] = t);
@@ -43,7 +56,6 @@ console.log('[map-render] script loaded');
     const branchEdgeKey = (a, b) => a + '>' + b;
     const dangerSet = new Set((BRANCH_EDGES.danger || []).map(([a,b]) => branchEdgeKey(a,b)));
     const safeSet = new Set((BRANCH_EDGES.safe || []).map(([a,b]) => branchEdgeKey(a,b)));
-
     function branchClass(a, b) {
       const k = branchEdgeKey(a, b);
       if (dangerSet.has(k)) return 'edge-danger';
@@ -51,29 +63,59 @@ console.log('[map-render] script loaded');
       return 'edge-normal';
     }
 
-    // ---------- nền ----------
+    // Bảng màu icon theo loại ô — dùng cho vòng ngoài ô (giống nút màu trong ảnh tham khảo)
+    const TYPE_RING = {
+      normal:    { ring: '#8fb5e0', fill: '#eaf3ff' },
+      chest:     { ring: '#e0a94a', fill: '#fff3d9' },
+      penalty:   { ring: '#d9564a', fill: '#ffe1de' },
+      lucky:     { ring: '#5aa8e0', fill: '#e4f3ff' },
+      territory: { ring: '#4a7fd9', fill: '#dbe8ff' },
+      mystery:   { ring: '#b05ad9', fill: '#f2e0ff' },
+      money:     { ring: '#e0c23a', fill: '#fff8d6' },
+      heal:      { ring: '#4ad98a', fill: '#dcffec' },
+      double:    { ring: '#e08a3a', fill: '#ffe9d2' },
+      start:     { ring: '#4ad98a', fill: '#dcffec' },
+      finish:    { ring: '#e0c23a', fill: '#fff3c4' },
+    };
+
+    // ---------- nền texture đất/tuyết ----------
     function drawBackground(width, height) {
       const defs = el('defs');
-      const grad = el('linearGradient', { id: 'groundGrad', x1: '0%', y1: '0%', x2: '0%', y2: '100%' });
-      grad.appendChild(el('stop', { offset: '0%', 'stop-color': '#eaf6ff' }));
-      grad.appendChild(el('stop', { offset: '100%', 'stop-color': '#cfe7f7' }));
-      defs.appendChild(grad);
+
+      const groundGrad = el('linearGradient', { id: 'groundGrad', x1: '0%', y1: '0%', x2: '30%', y2: '100%' });
+      groundGrad.appendChild(el('stop', { offset: '0%', 'stop-color': '#dff2ff' }));
+      groundGrad.appendChild(el('stop', { offset: '55%', 'stop-color': '#bfe3f7' }));
+      groundGrad.appendChild(el('stop', { offset: '100%', 'stop-color': '#a9d6ef' }));
+      defs.appendChild(groundGrad);
+
+      // gradient dùng cho các ô nút bấm (trên sáng dưới tối, hiệu ứng nổi khối)
+      const btnGrad = el('radialGradient', { id: 'btnGrad', cx: '35%', cy: '30%', r: '75%' });
+      btnGrad.appendChild(el('stop', { offset: '0%', 'stop-color': '#ffffff' }));
+      btnGrad.appendChild(el('stop', { offset: '100%', 'stop-color': '#eef6fb' }));
+      defs.appendChild(btnGrad);
+
       svg.appendChild(defs);
 
       svg.appendChild(el('rect', {
-        x: -300, y: -300, width: width + 600, height: height + 600,
+        x: -400, y: -400, width: width + 800, height: height + 800,
         fill: 'url(#groundGrad)',
       }));
 
-      // vài mảng bóng tuyết nhẹ
-      const blobs = [
-        [width*0.12, height*0.15, 200, 90], [width*0.75, height*0.1, 240, 110],
-        [width*0.3, height*0.7, 220, 100], [width*0.85, height*0.65, 210, 100],
-        [width*0.55, height*0.4, 260, 120],
-      ];
-      blobs.forEach(([x,y,rx,ry]) => {
-        svg.appendChild(el('ellipse', { cx: x, cy: y, rx, ry, fill: '#dcf0fb', opacity: 0.55 }));
-      });
+      // Mảng "đất tuyết" loang màu ngẫu nhiên (giống mảng cỏ đậm/nhạt trong ảnh tham khảo)
+      const patchGroup = el('g', { class: 'ground-patches' });
+      const patchCount = 46;
+      for (let i = 0; i < patchCount; i++) {
+        const x = rand() * width;
+        const y = rand() * height;
+        const r = 60 + rand() * 130;
+        const shade = rand();
+        const fill = shade < 0.5 ? '#d3ecfb' : (shade < 0.8 ? '#c3e4f5' : '#e8f6ff');
+        patchGroup.appendChild(el('ellipse', {
+          cx: x, cy: y, rx: r, ry: r * (0.55 + rand() * 0.3),
+          fill, opacity: 0.5,
+        }));
+      }
+      svg.appendChild(patchGroup);
     }
 
     function drawIceLakes() {
@@ -81,14 +123,16 @@ console.log('[map-render] script loaded');
       (ICE_LAKES || []).forEach(lake => {
         const cx = PAD + lake.x * CELL, cy = PAD + lake.y * CELL;
         const rx = lake.rx * CELL, ry = lake.ry * CELL;
-        g.appendChild(el('ellipse', { cx, cy, rx, ry, fill: '#8fd3ef', opacity: 0.6 }));
-        g.appendChild(el('ellipse', { cx: cx-rx*0.25, cy: cy-ry*0.3, rx: rx*0.35, ry: ry*0.25, fill: '#fff', opacity: 0.35 }));
+        g.appendChild(el('ellipse', { cx: cx+6, cy: cy+8, rx, ry, fill: '#6fb3d6', opacity: 0.35 }));
+        g.appendChild(el('ellipse', { cx, cy, rx, ry, fill: '#9fdcf5', opacity: 0.85, stroke: '#ffffff', 'stroke-width': 3 }));
+        g.appendChild(el('ellipse', { cx: cx-rx*0.28, cy: cy-ry*0.32, rx: rx*0.32, ry: ry*0.2, fill: '#ffffff', opacity: 0.55 }));
       });
       svg.appendChild(g);
     }
 
-    // ---------- path + mũi tên ----------
+    // ---------- path be/kem dạng "con đường mòn" ----------
     function drawPaths() {
+      const gShadow = el('g', { class: 'path-shadow' });
       const gCasing = el('g', { class: 'path-casing' });
       const gFill = el('g', { class: 'path-fill' });
       const gArrows = el('g', { class: 'path-arrows' });
@@ -101,6 +145,10 @@ console.log('[map-render] script loaded');
           const c2 = tileCenter(to);
           const cls = branchClass(t.id, to.id);
 
+          gShadow.appendChild(el('line', {
+            x1: c1.cx, y1: c1.cy + 5, x2: c2.cx, y2: c2.cy + 5,
+            class: 'path-shadow-line',
+          }));
           gCasing.appendChild(el('line', {
             x1: c1.cx, y1: c1.cy, x2: c2.cx, y2: c2.cy,
             class: 'path-casing-line',
@@ -110,38 +158,40 @@ console.log('[map-render] script loaded');
             class: `path-fill-line ${cls}`,
           }));
 
-          // mũi tên ở điểm giữa cạnh, xoay theo hướng đi
           const mx = (c1.cx + c2.cx) / 2;
           const my = (c1.cy + c2.cy) / 2;
           const angle = Math.atan2(c2.cy - c1.cy, c2.cx - c1.cx) * 180 / Math.PI;
-          const arrow = el('polygon', {
-            points: '-8,-6 8,0 -8,6',
-            transform: `translate(${mx},${my}) rotate(${angle})`,
-            class: 'path-arrow',
-          });
-          gArrows.appendChild(arrow);
+
+          const arrowGroup = el('g', { transform: `translate(${mx},${my}) rotate(${angle})`, class: 'path-arrow-group' });
+          arrowGroup.appendChild(el('circle', { r: 15, class: 'path-arrow-bg' }));
+          arrowGroup.appendChild(el('polygon', { points: '-5,-7 7,0 -5,7', class: 'path-arrow-tri' }));
+          gArrows.appendChild(arrowGroup);
         });
       });
 
+      svg.appendChild(gShadow);
       svg.appendChild(gCasing);
       svg.appendChild(gFill);
       svg.appendChild(gArrows);
     }
 
-    // ---------- trang trí ----------
+    // ---------- trang trí (rừng + băng giá kết hợp) ----------
     let decoGroup = null;
     function drawDecorations() {
       decoGroup = el('g', { class: 'decorations' });
       (DECORATIONS || []).forEach(d => {
         const cx = PAD + d.x * CELL, cy = PAD + d.y * CELL;
-        const t = el('text', { x: cx, y: cy, class: 'deco-icon' });
+        const wrap = el('g', { transform: `translate(${cx},${cy})` });
+        wrap.appendChild(el('ellipse', { cx: 2, cy: 14, rx: 16, ry: 5, class: 'deco-shadow' }));
+        const t = el('text', { x: 0, y: 0, class: 'deco-icon' });
         t.textContent = d.icon;
-        decoGroup.appendChild(t);
+        wrap.appendChild(t);
+        decoGroup.appendChild(wrap);
       });
       svg.appendChild(decoGroup);
     }
 
-    // ---------- ô ----------
+    // ---------- ô dạng nút bấm nổi khối ----------
     const tileInfoBox = document.getElementById('tileInfo');
     let showNumbers = false;
 
@@ -150,25 +200,36 @@ console.log('[map-render] script loaded');
       TILES.forEach((t, i) => {
         const { cx, cy } = tileCenter(t);
         const info = TILE_TYPES[t.type] || { icon: '?', label: t.type, desc: '' };
+        const colors = TYPE_RING[t.type] || TYPE_RING.normal;
         const isTerminal = t.type === 'start' || t.type === 'finish';
-        const r = isTerminal ? 27 : 24;
+        const r = isTerminal ? 30 : 26;
 
         const group = el('g', { class: 'tile-group', 'data-tile': t.id });
 
+        // đế bóng dưới ô (tạo hiệu ứng nổi khối)
+        group.appendChild(el('circle', { cx: cx, cy: cy + 4, r: r, class: 'tile-shadow' }));
+
+        // vòng ngoài màu theo loại ô
         group.appendChild(el('circle', {
-          cx, cy, r,
-          class: 'tile-bg',
-          fill: isTerminal ? '#fff3c4' : '#ffffff',
-          stroke: isTerminal ? '#f2c14e' : '#cfe3f0',
-          'stroke-width': isTerminal ? 3 : 2,
+          cx, cy, r: r + 4, fill: colors.ring, class: 'tile-ring',
+        }));
+        // mặt nút chính
+        group.appendChild(el('circle', {
+          cx, cy, r, fill: 'url(#btnGrad)', class: 'tile-face',
+          stroke: colors.ring, 'stroke-width': 2,
+        }));
+        // highlight nhỏ góc trên trái tạo độ bóng
+        group.appendChild(el('ellipse', {
+          cx: cx - r*0.35, cy: cy - r*0.4, rx: r*0.35, ry: r*0.2,
+          fill: '#ffffff', opacity: 0.6, class: 'tile-highlight',
         }));
 
-        const icon = el('text', { x: cx, y: cy, class: 'tile-icon' });
+        const icon = el('text', { x: cx, y: cy + 1, class: 'tile-icon' });
         icon.textContent = info.icon;
         group.appendChild(icon);
 
         const numLabel = el('text', {
-          x: cx, y: cy + r + 12, class: 'tile-num tnum',
+          x: cx, y: cy + r + 16, class: 'tile-num tnum',
           style: showNumbers ? '' : 'display:none',
         });
         numLabel.textContent = (i + 1).toString();
@@ -201,12 +262,13 @@ console.log('[map-render] script loaded');
     function buildLegend() {
       const list = document.getElementById('legendList');
       if (!list) return;
-      Object.values(TILE_TYPES).forEach(info => {
-        if (info.label === 'Bắt đầu' || info.label === 'Đích') return;
+      Object.entries(TILE_TYPES).forEach(([key, info]) => {
+        if (key === 'start' || key === 'finish') return;
+        const colors = TYPE_RING[key] || TYPE_RING.normal;
         const row = document.createElement('div');
         row.className = 'legend-row';
         row.innerHTML = `
-          <div class="legend-icon">${info.icon}</div>
+          <div class="legend-icon" style="background:${colors.fill};border-color:${colors.ring}">${info.icon}</div>
           <div class="legend-text">
             <div class="label">${info.label}</div>
             <div class="desc">${info.desc}</div>
